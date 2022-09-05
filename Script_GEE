@@ -1,0 +1,78 @@
+// VISUALIZATION MAP - SCENE CLASSIFICATION
+
+  // Creating the study area
+  var geometry = ee.Geometry.Polygon(
+          [[[-48.74015808105469,-26.37372339295363],
+              [-48.65947723388672,-26.37372339295363],
+              [-48.65947723388672,-26.31895972813747],
+              [-48.74015808105469,-26.31895972813747],
+              [-48.74015808105469,-26.37372339295363]]]);
+  Map.setCenter(-48.701019287109375,-26.345729477120894, 11); // Babitonga Bay (SC - Brazil) location
+
+  // importing the images 
+  var image = ee.Image('COPERNICUS/S2_SR_HARMONIZED/20220703T132239_20220703T132238_T22JGR') 
+  // you can chose your image (see how in: https://github.com/laispool/ImageCollection_table )
+    .clip(geometry); 
+
+  // Defining the visualization parameters
+    var vis_scl = {
+      min: 0,
+      max: 11,
+      palette: ['000000','FF0000' ,'363636', 'B8860B', '00FF00', 'FFFF00', '0000FF',
+                '808080', 'C0C0C0', 'F0F8FF', '00CED1', 'FFC0CB'], // colors taken from https://developers.google.com/earth-engine/datasets/catalog/COPERNICUS_S2_SR
+      bands: ['SCL'] // to visualize in terms of SCL
+    };
+    var vis_rgb = {
+      max: 1000,
+      bands: ['B4', 'B3', 'B2'], // to visualize in true color
+    };
+    var projection = image.select('B4').projection().getInfo();  
+
+  // Displaying the images
+  Map.addLayer(image, vis_scl, 'Classification Map');
+  Map.addLayer(image, vis_rgb, 'True Color');
+
+
+// MASKING WITH SCL
+var S2_scl = function (img){
+  // Locate SCL product
+  var scl = image.select('SCL');
+  // SCL classification. Apply mask to the image
+  var wantedPixels = scl.gt(0).and(scl.lte(5)); // you can use all the connector and operators to mask in your own way
+     // eq: =
+     // gte: >=
+     // gt: >
+     // lt: <
+     // lte: <=
+    return image.updateMask(wantedPixels);
+};
+
+var scl = function (img){
+          if (scl === 0) {return [0, 0, 0]; // black - no_data
+          } else if (scl == 1) {return [1, 0, 0.016]; // red - satured or defective
+          } else if (scl == 2) {return [0.525, 0.525, 0.525]; // gray - dark area pixels
+          } else if (scl == 3) {return [0.467, 0.298, 0.043]; // brown - cloud shadows
+          } else if (scl == 4) {return [0.063, 0.827, 0.176]; // green - vegetation
+          } else if (scl == 5) {return [1, 1, 0.325]; // yellow - not vegetated
+          } else if (scl == 6) {return [0, 0, 1]; // blue - water
+          } else if (scl == 7) {return [0.506, 0.506, 0.506]; // medium gray - unclassified
+          } else if (scl == 8) {return [0.753, 0.753, 0.753]; // light gray - cloud medium probability
+          } else if (scl == 9) {return [0.949, 0.949, 0.949]; // very light gray - cloud high probability
+          } else if (scl == 10) {return [0.733, 0.773, 0.925]; // light blue/purple - thin cirrus
+          } else if (scl == 11) {return [0.325, 1, 0.980]; // cyan - snow
+          } else {return [0,0,0]}
+}
+var scl_class = S2_scl (image);
+Map.addLayer(scl_class, vis_scl, 'SCL masked');
+  
+// EXPORT IMAGE
+Export.image.toDrive({
+  image: image,
+  description: 'S2_20220703',
+  region: geometry,
+  crs: projection.crs,
+  crsTransform: projection.transform,
+  fileFormat: 'GeoTIFF',
+  formatOptions: {
+  cloudOptimized: true}
+});
