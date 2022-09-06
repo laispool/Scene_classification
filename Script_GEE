@@ -7,7 +7,7 @@
               [-48.65947723388672,-26.31895972813747],
               [-48.74015808105469,-26.31895972813747],
               [-48.74015808105469,-26.37372339295363]]]);
-  Map.setCenter(-48.701019287109375,-26.345729477120894, 11); // Babitonga Bay (SC - Brazil) location
+  Map.centerObject(geometry, 11); // Babitonga Bay (SC - Brazil) location
 
   // importing the images 
   var image = ee.Image('COPERNICUS/S2_SR_HARMONIZED/20220703T132239_20220703T132238_T22JGR') 
